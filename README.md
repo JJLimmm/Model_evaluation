@@ -11,6 +11,6 @@ Kit for evaluating rknn models against their onnx models.
 
 ## Future work
 
--[ ] Experiment with numpy versions to find potential conflicts
--[ ] Include CenterNet processing
--[ ] Evaluation metrics
+- [ ] Experiment with numpy versions to find potential conflicts
+- [ ] Include CenterNet processing
+- [ ] Evaluation metrics
