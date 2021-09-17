@@ -1,4 +1,5 @@
 from rknn.api import RKNN
+import numpy as np
 
 
 class RKNNModel:
@@ -8,13 +9,16 @@ class RKNNModel:
         use_sim=True,
         device_type="rk1808",
         device_id="TM018084210400233",
+        verbose=False,
     ):
-        self.model = RKNN()
+        self.model = RKNN(verbose=verbose)
         self.model.load_rknn(model_path)
         if use_sim:
-            self.model.init_runtime(target=device_type)
+            print(f"Using simulated {device_type}")
+            self.model.init_runtime()
         else:
             try:
+                print(f"Initializing with {device_type}: connecting to {device_id}")
                 self.model.init_runtime(target=device_type, device_id=device_id)
             except:
                 print(
@@ -24,17 +28,17 @@ class RKNNModel:
                 print(f" {device_id} : {device_type}")
                 self.model.init_runtime(target=device_type)
 
-    def forward(self, image):
-        return self.model.inference(inputs=[image])
+    def forward(self, image):  # TODO input types. docstrings.
+        # TODO use image type as reference for model type:
 
+        result = self.model.inference(
+            inputs=[image],
+            data_format="nchw",
+            data_type="float16",
+            inputs_pass_through=[1],
+        )
+        return np.array(result)
 
-if __name__ == "__main__":
-    import cv2
-    import numpy as np
-
-    rknn = RKNNModel("./rknn_exports/yolox_helmet_v2_qt.rknn", use_sim=False)
-    # preprocess img:
-    img = cv2.imread("./test_data/mpe_phone_07_000185.jpg")
-
-    output = rknn.forward(img)
+    def close(self):
+        self.model.release()
 

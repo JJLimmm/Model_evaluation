@@ -84,16 +84,12 @@ def postprocess(outputs, image_info, class_names=["A", "B"], confidence_threshol
     ratio = image_info["ratio"]
     image = image_info["raw_img"]
     test_size = image_info["test_size"]
-    # print(outputs[0])
+
     predictions = output_to_predictions(outputs[0], test_size, p6=False)[
         0
     ]  # only strip batch dim
     boxes = predictions[:, :4]
     scores = predictions[:, 4:5] * predictions[:, 5:]
-
-    print(boxes.shape)
-    # print(scores.shape)
-    # print(ratio)
 
     # xywh to xyxy
     boxes_xyxy = np.ones_like(boxes)
@@ -102,11 +98,9 @@ def postprocess(outputs, image_info, class_names=["A", "B"], confidence_threshol
     boxes_xyxy[:, 2] = boxes[:, 0] + boxes[:, 2] / 2.0
     boxes_xyxy[:, 3] = boxes[:, 1] + boxes[:, 3] / 2.0
     boxes_xyxy /= ratio
-    # print(boxes_xyxy)
 
-    print(scores)
     dets = multiclass_nms(boxes_xyxy, scores, nms_thr=0.45, score_thr=0.1)
-    print(dets)
+
     if dets is None:
         return image  # no detections to draw
     final_boxes, final_scores, final_cls_inds = (
@@ -114,7 +108,7 @@ def postprocess(outputs, image_info, class_names=["A", "B"], confidence_threshol
         dets[:, 4],
         dets[:, 5],
     )
-    print(dets)
+
     return draw_bbox(
         image,
         final_boxes,
