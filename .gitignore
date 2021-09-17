@@ -153,6 +153,7 @@ ipython_config.py
 #   git rm -r .ipynb_checkpoints/
 
 # project specific:
+archive
 rknn_exports/logs/*
 test_results/*
 *.jpg
@@ -160,3 +161,5 @@ test_results/*
 
 # developer tools:
 cli_commands.txt
+test.py
+dev_notes.txt
