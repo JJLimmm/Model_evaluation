@@ -28,6 +28,20 @@ def preprocess(
     std=(0.229, 0.224, 0.225),
     swap=(2, 0, 1),
 ):
+    """Convert image read by cv2 into a resized, normalized, floating point representation.
+    Resizing is done in a manner that preserves aspect ratio via padding.
+    Currently, due to modifications to yolox, channel swaps should have minimal effect
+
+    Args:
+        image (ndarray): Image read from cv2. Has the form H x W x C
+        input_size (list/tuple): Expected input size for model. Image will be resized to input_size
+        mean (tuple, optional): mean BGR values for normalization. Defaults to (0.485, 0.456, 0.406).
+        std (tuple, optional): standard deviation of BGR values for normalization. Defaults to (0.229, 0.224, 0.225).
+        swap (tuple, optional): post-normalization channel swaps. Defaults to (2, 0, 1).
+
+    Returns:
+        ndarray, float: returns the preprocessed image and the ratio used for resize.
+    """
     if len(image.shape) == 3:
         padded_img = np.ones((input_size[0], input_size[1], 3)) * 114.0
     else:
@@ -53,6 +67,16 @@ def preprocess(
 
 
 def output_to_predictions(outputs, img_size, p6=False):
+    """Converts the raw model output into predictions (bboxes and scores)
+
+    Args:
+        outputs (ndarray): model output from image inference (B x N_predictions x 4 + N_classes + 1)
+        img_size (list/tuple): image size used for inference (not raw image size)
+        p6 (bool, optional): whether model contains p6 layer. Defaults to False.
+
+    Returns:
+        ndarray: array of predictions of the form B x N_predictions x 6
+    """
 
     grids = []
     expanded_strides = []
