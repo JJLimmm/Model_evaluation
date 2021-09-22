@@ -155,6 +155,10 @@ ipython_config.py
 # project specific:
 archive
 rknn_exports/logs/*
+test_data/Annotations/*
+test_data/gt_files/*
+test_data/Images/*
+test_data/ImageSets/*
 test_results/*
 *.jpg
 
