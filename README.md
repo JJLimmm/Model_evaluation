@@ -4,8 +4,8 @@ Kit for evaluating rknn models against their onnx models.
 
 ## Usage
 
-l. Use [rknn_exporter.py]("./utils/rknn_exporter.py") to convert the onnx model into an rknn model.
-l. Use [rknn_demo.py]("./rknn_demo.py") to perform inference and visualization on images included in ./test_data (e.g. `python rknn_demo.py model_name.rknn`)
+1. Use [rknn_exporter.py]("./utils/rknn_exporter.py") to convert the onnx model into an rknn model.
+1. Use [rknn_demo.py]("./rknn_demo.py") to perform inference and visualization on images included in ./test_data (e.g. `python rknn_demo.py model_name.rknn`)
 
 
 ## Main Changelog
