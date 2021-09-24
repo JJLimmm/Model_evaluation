@@ -1,5 +1,5 @@
 import numpy as np
-from .result_io import load_gt_file
+from .result_io import load_gt_file, parse_image_set
 
 from typing import Optional
 

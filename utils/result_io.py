@@ -105,12 +105,12 @@ def parse_image_set(txt_file):
 
 if __name__ == "__main__":
     imgfiles = parse_image_set("test_data/ImageSets/main.txt")
-    print(imgfiles[:3])
+    """print(imgfiles[:3])
     create_gt_file(
         "test_data/gt_files/gt.pkl", imgfiles, "test_data/Annotations",
-    )
+    )"""
 
     gt_dict = load_gt_file("test_data/gt_files/gt.pkl", imgfiles)
     # print(gt_dict.keys())
     # print(gt_dict["head"].keys())
-    print(gt_dict)
+    # print(gt_dict)

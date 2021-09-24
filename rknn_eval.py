@@ -1,3 +1,4 @@
+from utils.result_io import parse_image_set
 from models import RKNNModel
 from yolox_processing import postprocess, preprocess, decompose_detections
 from utils import compute_mAP, create_gt_file
@@ -73,13 +74,11 @@ def process_outputs(outputs, meta_data, dets_dict, class_names):
 def build_gt_file(pkl_filename, image_folder, annotations_folder, image_set_file=None):
     if image_set_file is not None:
         # use the image set file for image file names instead
-        with open(image_set_file, "r") as f:
-            image_files = f.readlines()
-        image_files = [image_file.strip() for image_file in image_files]
+        image_files = parse_image_set(image_set_file)
     else:
         image_files = []
         for image_file in Path(image_folder).iterdir():
-            image_files.append(image_file.with_suffix(".jpg").parts[-1])
+            image_files.append(image_file.parts[-1])
 
     create_gt_file(pkl_filename, image_files, annotations_folder)
 
@@ -89,6 +88,7 @@ def evaluate(
     gt_filename="./test_data/gt_files/gt.pkl",
     images_path="./test_data/Images",
     annotations_path="./test_data/Annotations",
+    image_set_file="./test_data/ImageSets/main.txt",
     batch_size=32,
     result_path="./test_results",
     class_names=["A", "B"],
@@ -96,9 +96,7 @@ def evaluate(
     # check if gt file already exists:
     if not os.path.exists(gt_filename):
         # need to build new gt file
-        build_gt_file(
-            gt_filename, images_path, annotations_path,
-        )
+        build_gt_file(gt_filename, images_path, annotations_path, image_set_file)
 
     # create folder for test results
     if result_path == "./test_results":
