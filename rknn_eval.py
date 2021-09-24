@@ -1,5 +1,11 @@
 from utils.result_io import parse_image_set
 from models import RKNNModel
+
+try:
+    from models import ONNXModel
+except ImportError:
+    print("ONNXModel not available in this environment")
+
 from yolox_processing import postprocess, preprocess, decompose_detections
 from utils import compute_mAP, create_gt_file
 
@@ -18,6 +24,7 @@ import argparse
 def make_parser():
     parser = argparse.ArgumentParser()
     parser.add_argument("model_path")
+    parser.add_argument("--model_type", type=str, default="rknn")
     parser.add_argument("--use_sim", type=bool, default=False)
     parser.add_argument("--dev", type=str, default="TM018084210400144")
 
@@ -84,7 +91,7 @@ def build_gt_file(pkl_filename, image_folder, annotations_folder, image_set_file
 
 
 def evaluate(
-    rknn_model,
+    model,
     gt_filename="./test_data/gt_files/gt.pkl",
     images_path="./test_data/Images",
     annotations_path="./test_data/Annotations",
@@ -93,6 +100,18 @@ def evaluate(
     result_path="./test_results",
     class_names=["A", "B"],
 ):
+    """Evaluate a model on VOC mAP
+
+    Args:
+        rknn_model (model): provides inference
+        gt_filename (str, optional): ground truth pickle file; will be created at location if does not exist. Defaults to "./test_data/gt_files/gt.pkl".
+        images_path (str, optional): path to image folder. Defaults to "./test_data/Images".
+        annotations_path (str, optional): path to annotations folder. Defaults to "./test_data/Annotations".
+        image_set_file (str, optional): path to imageset txt file. Defaults to "./test_data/ImageSets/main.txt".
+        batch_size (int, optional): affects number of images stored in memory. Defaults to 32.
+        result_path (str, optional): Currently redundant. Defaults to "./test_results".
+        class_names (list, optional): class names used in groundtruth. Must match else gt won't load. Defaults to ["A", "B"].
+    """
     # check if gt file already exists:
     if not os.path.exists(gt_filename):
         # need to build new gt file
@@ -129,7 +148,7 @@ def evaluate(
         # perform inference
         for image in images:
             start_time = time.time()
-            output = rknn_model.forward(image)
+            output = model.forward(image)
             inference_time = time.time() - start_time
             inference_times.append(inference_time)
             outputs.append(output)
@@ -140,20 +159,31 @@ def evaluate(
     # evaluate detections obtained:
     mAP, class_aps = compute_mAP(detections, gt_filename)
 
-    rknn_model.close()
+    model.close()
     print(f"Average Inference time: {np.mean(np.array(inference_times))}")
     print(f"Class aps: {class_aps}")
     print(f"Final mAP: {mAP}")
 
 
 if __name__ == "__main__":
+    try:
+        from models import ONNXModel
+    except ImportError:
+        print(
+            "ONNXModel not available in this environment. Need to install onnxruntime."
+        )
+
     args = make_parser().parse_args()
-    # model = RKNNModel("./rknn_exports/yolox_tiny_qt.rknn", use_sim=True)
-    model = RKNNModel(
-        os.path.join("./rknn_exports", args.model_path),
-        use_sim=args.use_sim,
-        device_id=args.dev,
-    )
+
+    if args.model_type == "onnx":
+        model = ONNXModel(args.model_path)
+    else:
+        model = RKNNModel(
+            os.path.join("./rknn_exports", args.model_path),
+            use_sim=args.use_sim,
+            device_id=args.dev,
+        )
+
     evaluate(model, class_names=["helmet", "head"])
 
     model.close()

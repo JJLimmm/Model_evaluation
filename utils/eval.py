@@ -5,6 +5,15 @@ from typing import Optional
 
 
 def score_iou(det_bbox, gt_bbox):
+    """Compute IoU between a single bboxes
+
+    Args:
+        det_bbox (ndarray): detection bbox in xyxy format
+        gt_bbox (ndarray): ground truth bbox in xyxy format format
+
+    Returns:
+        float: IoU score
+    """
     ixmin = np.maximum(gt_bbox[0], det_bbox[0])
     iymin = np.maximum(gt_bbox[1], det_bbox[1])
     ixmax = np.minimum(gt_bbox[2], det_bbox[2])
