@@ -5,8 +5,59 @@ Kit for evaluating rknn models against their onnx models.
 ## Usage
 
 1. Use [rknn_exporter.py](utils/rknn_exporter.py) to convert the onnx model into an rknn model.
-1. Use [rknn_demo.py](rknn_demo.py) to perform inference and visualization on images included in ./test_data (e.g. `python rknn_demo.py model_name.rknn`)
+1. Use [rknn_demo.py](rknn_demo.py) to perform inference and visualization on images included in ./test_data (e.g. `python rknn_demo.py model_name.rknn --use_sim True`)
 
+### RKNN Model API
+
+The RKNN model has the following workflow and functions:
+
+```python
+
+# initialize model:
+model = RKNNModel(model_path, use_sim=False, device_id="", verbose=False)
+# device id can be obtained by the cli command: adb devices
+# device id will need to be supplied if not using simulation (which is default)
+
+# make inference with preprocessed img:
+output = model.forward(preprocessed_image)
+
+# release the RKNN api; currently does not help with RKNN restart problem
+model.close() 
+
+```
+
+### Project File Structure
+
+An overview of the project file structure. Only essential files are shown:
+
+```tree
+📦rknn_evaluation
+┣📂models
+┃┣ 📜onnx_model.py
+┃┗ 📜rknn_model.py
+┣📂utils
+┃┣ 📜eval.py
+┃┣ 📜result_io.py
+┃┗ 📜rknn_exporter.py
+┣📂setup
+┃┗ 📜rknn_setup.sh
+┣ 📂yolox_processing
+┃ ┣ 📜processing.py
+┃ ┗ 📜visualization.py
+┣📂test_data
+┃┣ 📂Annotations
+┃┣ 📂Images
+┃┣ 📂gt_files
+┣📂rknn_exports
+┃┣ 📂example
+┃┃ ┣ 📜yolox_tiny_v3.onnx
+┃┃ ┗ 📜yolox_tiny_v3.rknn
+ ┣ 📂logs
+┣ 📜rknn_demo.py
+┗ 📜rknn_eval.py
+```
+
+Overall, primary scripts are kept at the root of the project, while all other auxillary files are kept in processing, models, or utils respectively.
 
 ## Main Changelog
 
@@ -14,11 +65,9 @@ Kit for evaluating rknn models against their onnx models.
 - RKNN export script added.
 - Now supports environments with and without onnxruntime.
 
-
 ## Known Issues
 
 - The current RKNN model cannot run on Jupyter Notebook when using rknn-toolkit 1.7
-
 
 ## Requirements
 

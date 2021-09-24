@@ -12,6 +12,9 @@ import time
 import argparse
 
 
+IMAGE_EXT = (".jpg", ".jpeg", ".webp", ".bmp", ".png")  # must be tuple
+
+
 def make_parser():
     parser = argparse.ArgumentParser()
     parser.add_argument("model_path")
@@ -24,6 +27,10 @@ def preprocess_image_folder(path, resize_shape=(512, 512), dtype=np.float16):
     images = []
     meta_data = []
     for image_file in Path(path).iterdir():
+        # ignore non-image files:
+        if not str(image_file).endswith(IMAGE_EXT):
+            continue
+
         image = cv2.imread(str(image_file))
 
         raw_image = image.copy()
@@ -39,9 +46,9 @@ def preprocess_image_folder(path, resize_shape=(512, 512), dtype=np.float16):
     return images, meta_data
 
 
-def vis_batch(outputs, meta_data, path="./test_results"):
-    if path == "./test_results":
-        output_folder = os.path.join(path, str(datetime.now()))
+def vis_batch(outputs, meta_data, output_folder="./test_results"):
+    if output_folder == "./test_results":
+        output_folder = os.path.join(output_folder, str(datetime.now()))
     Path(output_folder).mkdir(exist_ok=True, parents=True)
 
     for index, (output, data) in enumerate(zip(outputs, meta_data)):

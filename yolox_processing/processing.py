@@ -104,14 +104,28 @@ def output_to_predictions(outputs, img_size, p6=False):
     return outputs
 
 
-def postprocess(outputs, image_info, class_names=["A", "B"], confidence_threshold=0.5):
+def postprocess(
+    outputs,
+    image_info,
+    class_names=["A", "B"],
+    confidence_threshold=0.5,
+    create_visualization=True,
+):
     ratio = image_info["ratio"]
     image = image_info["raw_img"]
     test_size = image_info["test_size"]
 
-    predictions = output_to_predictions(outputs[0], test_size, p6=False)[
-        0
-    ]  # only strip batch dim
+    try:
+        predictions = output_to_predictions(outputs[0], test_size, p6=False)[
+            0
+        ]  # only strip batch dim
+    except:
+        print(
+            f"output_to_predictions: {output_to_predictions(outputs[0], test_size, p6=False)}"
+        )
+        raise Exception(
+            "in postprocess line 119, output_to_prediction could not be unpacked; expected len > 0"
+        )
     boxes = predictions[:, :4]
     scores = predictions[:, 4:5] * predictions[:, 5:]
 
@@ -125,13 +139,12 @@ def postprocess(outputs, image_info, class_names=["A", "B"], confidence_threshol
 
     dets = multiclass_nms(boxes_xyxy, scores, nms_thr=0.45, score_thr=0.1)
 
+    if create_visualization == False:
+        return dets
+
     if dets is None:
         return image  # no detections to draw
-    final_boxes, final_scores, final_cls_inds = (
-        dets[:, :4],
-        dets[:, 4],
-        dets[:, 5],
-    )
+    final_boxes, final_scores, final_cls_inds = decompose_detections(dets)
 
     return draw_bbox(
         image,
@@ -141,6 +154,15 @@ def postprocess(outputs, image_info, class_names=["A", "B"], confidence_threshol
         class_names=class_names,
         conf=confidence_threshold,
     )
+
+
+def decompose_detections(detections):
+    bboxes, scores, cls_inds = (
+        detections[:, :4],
+        detections[:, 4],
+        detections[:, 5],
+    )
+    return bboxes, scores, cls_inds
 
 
 def visualize(output, image_info, confidence_threshold=0.5, class_names=["A", "B"]):

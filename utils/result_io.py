@@ -74,10 +74,14 @@ def load_gt_file(filepath, imagefiles, classnames=None):
         for imagefile in pbar:
             pbar.set_description(f"Parsing gt for {classname} in {imagefile}")
             try:
-                R = [obj for obj in gt[imagefile] if obj["name"] == classname]
-                bbox = np.array([x["bbox"] for x in R])
-                difficult = np.array([x["difficult"] for x in R]).astype(np.bool)
-                det = [False] * len(R)
+                class_objects = [
+                    obj for obj in gt[imagefile] if obj["name"] == classname
+                ]
+                bbox = np.array([x["bbox"] for x in class_objects])
+                difficult = np.array([x["difficult"] for x in class_objects]).astype(
+                    np.bool
+                )
+                det = [False] * len(class_objects)
                 num_positive = num_positive + sum(~difficult)
                 class_gts[classname][imagefile] = {
                     "bbox": bbox,
@@ -107,4 +111,6 @@ if __name__ == "__main__":
     )
 
     gt_dict = load_gt_file("test_data/gt_files/gt.pkl", imgfiles)
+    # print(gt_dict.keys())
+    # print(gt_dict["head"].keys())
     print(gt_dict)
