@@ -21,7 +21,7 @@ conda activate $envName
 
 if [ "$hasDownloaded" = false ]; then
     echo "Downloading rknn toolkit package for Ubuntu and Python 3.6"
-    rknnPackage=https://github.com/rockchip-linux/rknn-toolkit/releases/download/v1.6.1/rknn-toolkit-v1.6.1-packages.tar.gz
+    rknnPackage=https://github.com/rockchip-linux/rknn-toolkit/releases/download/v1.7.0/rknn-toolkit-v1.7.0-packages.tar.gz
     packageName=rknn_package
     wget -O ${packageName}.tar.gz ${rknnPackage}
     tar -xzvf ${packageName}.tar.gz
@@ -36,7 +36,7 @@ pip install torch==1.5.1 torchvision
 pip install mxnet==1.5.0
 
 if [ "$hasDownloaded" = false ]; then
-    pip install packages/rknn_toolkit-1.6.1-cp36-cp36m-linux_x86_64.whl
+    pip install packages/rknn_toolkit-1.7.0-cp36-cp36m-linux_x86_64.whl
 else
     echo "Please run pip install on your exiting download of the rknn_toolkit"
 fi
