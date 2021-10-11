@@ -26,7 +26,7 @@ def make_parser():
     parser.add_argument("model_path")
     parser.add_argument("--model_type", type=str, default="rknn")
     parser.add_argument("--use_sim", type=bool, default=False)
-    parser.add_argument("--dev", type=str, default="TM018084210400144")
+    parser.add_argument("--dev", type=str, default="TM018083200400463")
 
     return parser
 
@@ -92,6 +92,7 @@ def build_gt_file(pkl_filename, image_folder, annotations_folder, image_set_file
 
 def evaluate(
     model,
+    input_size=(512, 512),
     gt_filename="./test_data/gt_files/gt.pkl",
     images_path="./test_data/Images",
     annotations_path="./test_data/Annotations",
@@ -141,7 +142,9 @@ def evaluate(
             continue
 
         # batch process:
-        images, meta_data = preprocess_image_batch(image_file_batch)
+        images, meta_data = preprocess_image_batch(
+            image_file_batch, resize_shape=input_size
+        )
         image_file_batch = []
         outputs = []
 
@@ -184,6 +187,6 @@ if __name__ == "__main__":
             device_id=args.dev,
         )
 
-    evaluate(model, class_names=["helmet", "head"])
+    evaluate(model, class_names=["helmet", "head"], input_size=(512, 512))
 
     model.close()

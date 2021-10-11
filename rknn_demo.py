@@ -1,3 +1,4 @@
+from numpy.core.fromnumeric import resize
 from models import RKNNModel
 from yolox_processing import postprocess, preprocess
 
@@ -19,6 +20,13 @@ def make_parser():
     parser = argparse.ArgumentParser()
     parser.add_argument("model_path")
     parser.add_argument("--use_sim", type=bool, default=False)
+    parser.add_argument(
+        "--in_res",
+        nargs="+",
+        type=int,
+        default=[512, 512],
+        help="Input resolution. If only 1 argument is provided, it is broadcast to 2 dimensions",
+    )
 
     return parser
 
@@ -56,8 +64,11 @@ def vis_batch(outputs, meta_data, output_folder="./test_results"):
         cv2.imwrite(str(os.path.join(output_folder, f"vis{index}.jpg")), vis_image)
 
 
-def demo(rknn_model, images_path="./test_data"):
-    images, meta_data = preprocess_image_folder(images_path)
+def demo(rknn_model, images_path="./test_data", resize_shape=(512, 512)):
+    assert len(resize_shape) == 1 or len(resize_shape) == 2
+    if len(resize_shape) == 1:
+        resize_shape = (resize_shape[0], resize_shape[0])
+    images, meta_data = preprocess_image_folder(images_path, resize_shape=resize_shape)
     outputs = []
     for image in images:
         start_time = time.time()
@@ -75,4 +86,4 @@ if __name__ == "__main__":
     model = RKNNModel(
         os.path.join("./rknn_exports", args.model_path), use_sim=args.use_sim
     )
-    demo(model)
+    demo(model, args.in_res)
