@@ -29,7 +29,7 @@ def onnx_to_rknn(
     onnx_model = onnx.load(onnx_model_path)
 
     # perform onnx model validation:
-    onnx.checker.check_model(onnx_model)
+    # onnx.checker.check_model(onnx_model)
     if log_onnx_validation:
         shape_inference_model = shape_inference.infer_shapes(onnx_model)
         shape_info_file = open(
@@ -91,7 +91,8 @@ def onnx_to_rknn(
 
     if rknn.load_onnx(
         model=onnx_model_path,
-        input_size_list=[[3, 512, 512]],
+        inputs=["images"],
+        input_size_list=[input_size],
         # outputs=["output0", "output1", "output2"],
     ):
         print("Failed to import onnx model into RKNN")
@@ -113,6 +114,22 @@ def onnx_to_rknn(
 
 
 if __name__ == "__main__":
+    model_path = "./rknn_exports/tiny_v6_uint8.onnx"
+
+    try:
+        import onnxruntime
+
+        ort_session = onnxruntime.InferenceSession(model_path)
+        input_shape = ort_session.get_inputs()[0].shape
+        if len(input_shape) == 4:
+            input_shape = input_shape[1:]  # drop batch size
+    except ImportError:
+        print(
+            f"onnxruntime module not available. Unable to infer input shape; falling back on default input shape"
+        )
+        input_shape = [3, 640, 640]
+
+    print(input_shape)
 
     quant_info = {
         "mean_values": [123.7, 116.3, 103.5],
@@ -125,10 +142,10 @@ if __name__ == "__main__":
     }
 
     onnx_to_rknn(
-        "./rknn_exports/yolox_tiny_v3.onnx",
-        [3, 512, 512],
-        rknn_model_name="yolox_tiny_qt",
+        model_path,
+        input_shape,
+        rknn_model_name="tinyv3",
         log_onnx_validation=True,
-        perform_quant=True,
+        perform_quant=False,
         quant_info=quant_info,
     )

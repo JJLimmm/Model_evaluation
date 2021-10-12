@@ -3,7 +3,6 @@ import numpy as np
 import onnxruntime
 from onnxruntime.quantization import (
     quantize_static,
-    quantize_dynamic,
     CalibrationDataReader,
     QuantType,
 )
@@ -15,7 +14,10 @@ def preprocess_image(image_path, height, width, channels=3):
     image = Image.open(image_path)
     image = image.resize((width, height), Image.ANTIALIAS)
     image_data = np.asarray(image).astype(np.float32)
+
+    # TODO Support both CHW and HWC
     image_data = image_data.transpose([2, 0, 1])  # transpose to CHW
+
     mean = np.array([0.079, 0.05, 0]) + 0.406
     std = np.array([0.005, 0, 0.001]) + 0.224
     for channel in range(image_data.shape[0]):
@@ -46,21 +48,24 @@ def preprocess_func(images_folder, height, width, size_limit=0):
 
 
 class YOLOXDataReader(CalibrationDataReader):
-    def __init__(self, calibration_image_folder):
+    def __init__(self, calibration_image_folder, input_name, input_shape):
         self.image_folder = calibration_image_folder
         self.preprocess_flag = True
         self.enum_data_dicts = []
         self.datasize = 0
+        self.input_name = input_name
+        # self.image_height, self.image_width = input_shape
+        self.input_shape = input_shape
 
     def get_next(self):
         if self.preprocess_flag:
             self.preprocess_flag = False
             nhwc_data_list = preprocess_func(
-                self.image_folder, image_height, image_width, size_limit=0
+                self.image_folder, *self.input_shape, size_limit=0
             )
             self.datasize = len(nhwc_data_list)
             self.enum_data_dicts = iter(
-                [{input_name: nhwc_data} for nhwc_data in nhwc_data_list]
+                [{self.input_name: nhwc_data} for nhwc_data in nhwc_data_list]
             )
         return next(self.enum_data_dicts, None)
 
@@ -80,7 +85,7 @@ if __name__ == "__main__":
     parser.add_argument(
         "--cal",
         type=str,
-        required=True,
+        default="./test_data/Images",
         help="Path to folder containing calibration images",
     )
     parser.add_argument(
@@ -149,9 +154,24 @@ if __name__ == "__main__":
     model_output = args.output
     ort_session = onnxruntime.InferenceSession(model_input)
     input_name = ort_session.get_inputs()[0].name
-    image_height = ort_session.get_inputs()[0].shape[-2]
-    image_width = ort_session.get_inputs()[0].shape[-1]
-    dr = YOLOXDataReader(args.cal)
+
+    # Model specific. This model uses B x C x H x W
+    # TODO: Remove model specific components.
+    # Plausible assumption: H & W > C for input?
+
+    # Consider two possibilities: B x H x W x C or B x C x H x W
+    # Assumption: C < H & W
+    input_shape = ort_session.get_inputs()[0].shape
+    if input_shape[-1] > input_shape[-3]:
+        # last index is W; format is B x C x H x W
+        image_height = input_shape[-2]
+        image_width = input_shape[-1]
+    else:
+        # Format is B x H x W x C
+        image_height = input_shape[-3]
+        image_width = input_shape[-2]
+
+    dr = YOLOXDataReader(args.cal, input_name, (image_height, image_width))
     quantize_static(
         model_input,
         model_output,
@@ -159,8 +179,8 @@ if __name__ == "__main__":
         args.op_types_to_quantize,
         args.per_channel,
         args.reduce_range,
-        args.activation_type,
-        args.weight_type,
+        atype,
+        wtype,
         args.quant_nodes,
         args.exclude_nodes,
     )
@@ -171,4 +191,3 @@ if __name__ == "__main__":
     print(
         "ONNX quantized model size (MB):", os.path.getsize(model_output) / (1024 * 1024)
     )
-
