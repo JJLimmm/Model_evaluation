@@ -10,13 +10,27 @@ import os
 import argparse
 
 
-def preprocess_image(image_path, height, width, channels=3):
+def preprocess_image(image_path, height, width, swap=[0, 1, 2], channels=3):
+    """Normalize image to be used for model inference purposes
+
+    Args:
+        image_path (str): path to image file
+        height (int): height for resized image
+        width (int): width for resized image
+        swap (list, optional): swap order of channels by index. Defaults to [0, 1, 2].
+        channels (int, optional): Currently redundant. Defaults to 3.
+
+    Returns:
+        ndarry: preprocessed image
+    """
     image = Image.open(image_path)
     image = image.resize((width, height), Image.ANTIALIAS)
     image_data = np.asarray(image).astype(np.float32)
 
     # TODO Support both CHW and HWC
-    image_data = image_data.transpose([2, 0, 1])  # transpose to CHW
+    # Swap of [2, 0, 1] converts image in HWC to CHW
+    # Swap of [0, 1, 2] (default) maintains image in HWC
+    image_data = image_data.transpose(swap)
 
     mean = np.array([0.079, 0.05, 0]) + 0.406
     std = np.array([0.005, 0, 0.001]) + 0.224
@@ -28,7 +42,8 @@ def preprocess_image(image_path, height, width, channels=3):
     return image_data
 
 
-def preprocess_func(images_folder, height, width, size_limit=0):
+def preprocess_func(images_folder, height, width, swap, size_limit=0):
+    """ wrapper function to preprocess images into a batch """
     image_names = os.listdir(images_folder)
     if size_limit > 0 and len(image_names) >= size_limit:
         batch_filenames = [image_names[i] for i in range(size_limit)]
@@ -39,7 +54,7 @@ def preprocess_func(images_folder, height, width, size_limit=0):
     for image_name in batch_filenames:
         image_filepath = images_folder + "/" + image_name
 
-        image_data = preprocess_image(image_filepath, height, width)
+        image_data = preprocess_image(image_filepath, height, width, swap=swap)
         unconcatenated_batch_data.append(image_data)
     batch_data = np.concatenate(
         np.expand_dims(unconcatenated_batch_data, axis=0), axis=0
@@ -48,6 +63,8 @@ def preprocess_func(images_folder, height, width, size_limit=0):
 
 
 class YOLOXDataReader(CalibrationDataReader):
+    """Read and preprocess data for YOLOX model"""
+
     def __init__(self, calibration_image_folder, input_name, input_shape):
         self.image_folder = calibration_image_folder
         self.preprocess_flag = True
@@ -61,7 +78,7 @@ class YOLOXDataReader(CalibrationDataReader):
         if self.preprocess_flag:
             self.preprocess_flag = False
             nhwc_data_list = preprocess_func(
-                self.image_folder, *self.input_shape, size_limit=0
+                self.image_folder, *self.input_shape, size_limit=0, swap=[2, 0, 1]
             )
             self.datasize = len(nhwc_data_list)
             self.enum_data_dicts = iter(
@@ -154,10 +171,6 @@ if __name__ == "__main__":
     model_output = args.output
     ort_session = onnxruntime.InferenceSession(model_input)
     input_name = ort_session.get_inputs()[0].name
-
-    # Model specific. This model uses B x C x H x W
-    # TODO: Remove model specific components.
-    # Plausible assumption: H & W > C for input?
 
     # Consider two possibilities: B x H x W x C or B x C x H x W
     # Assumption: C < H & W

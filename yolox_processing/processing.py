@@ -2,25 +2,6 @@ import numpy as np
 import cv2
 
 
-"""def preprocess(img, input_size, swap=(2, 0, 1)):
-    if len(img.shape) == 3:
-        padded_img = np.ones((input_size[0], input_size[1], 3), dtype=np.uint8) * 114
-    else:
-        padded_img = np.ones(input_size, dtype=np.uint8) * 114
-
-    r = min(input_size[0] / img.shape[0], input_size[1] / img.shape[1])
-    resized_img = cv2.resize(
-        img,
-        (int(img.shape[1] * r), int(img.shape[0] * r)),
-        interpolation=cv2.INTER_LINEAR,
-    ).astype(np.uint8)
-    padded_img[: int(img.shape[0] * r), : int(img.shape[1] * r)] = resized_img
-
-    padded_img = padded_img.transpose(swap)
-    padded_img = np.ascontiguousarray(padded_img, dtype=np.float32)
-    return padded_img, r"""
-
-
 def preprocess(
     image,
     input_size,
@@ -108,9 +89,30 @@ def postprocess(
     outputs,
     image_info,
     class_names=["A", "B"],
+    nms_threshold=0.45,
+    score_threshold=0.1,
     confidence_threshold=0.5,
     create_visualization=True,
 ):
+    """Post process model outputs into detections or an annotated image
+    This function adopts the adapter pattern: "Multipurpose function" to abstract away all types of
+    postprocessing and results
+
+    Args:
+        outputs (ndarray): raw output from model
+        image_info (dict): image meta-information (aspect ratio, original image, test size)
+        class_names (list, optional): class names to map detection indexes for visualization. Defaults to ["A", "B"].
+        nms_threshold (float, optional): IoU threshold for nms
+        score_threshold (float, optional): minimum score for detection to be considered valid for nms
+        confidence_threshold (float, optional): post-nms detection confidence threshold for visualization. Defaults to 0.5.
+        create_visualization (bool, optional): [description]. Defaults to True.
+
+    Raises:
+        Exception: [description]
+
+    Returns:
+        [type]: [description]
+    """
     ratio = image_info["ratio"]
     image = image_info["raw_img"]
     test_size = image_info["test_size"]
@@ -137,7 +139,9 @@ def postprocess(
     boxes_xyxy[:, 3] = boxes[:, 1] + boxes[:, 3] / 2.0
     boxes_xyxy /= ratio
 
-    dets = multiclass_nms(boxes_xyxy, scores, nms_thr=0.45, score_thr=0.1)
+    dets = multiclass_nms(
+        boxes_xyxy, scores, nms_thr=nms_threshold, score_thr=score_threshold
+    )
 
     if create_visualization == False:
         return dets

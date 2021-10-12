@@ -32,6 +32,16 @@ def make_parser():
 
 
 def preprocess_image_batch(image_file_batch, resize_shape=(512, 512), dtype=np.float16):
+    """Prepare a batch of images for inference
+
+    Args:
+        image_file_batch (list[ndarray]): list of images that form a batch
+        resize_shape (tuple, optional): shape for preprocessed images. Defaults to (512, 512).
+        dtype (np.dtype, optional): final data type for preprocessed images. Defaults to np.float16.
+
+    Returns:
+        list, list: list of images and list of dictionaries containing metadata.
+    """
     images = []
     meta_data = []
 
@@ -58,6 +68,18 @@ def preprocess_image_batch(image_file_batch, resize_shape=(512, 512), dtype=np.f
 
 
 def process_outputs(outputs, meta_data, dets_dict, class_names):
+    """Convert a batch of model outputs into detections.
+    Mutates input detection dictionary to store the output detections.
+
+    Args:
+        outputs (list[ndarray]): list of raw model outputs
+        meta_data (list[dict]): list of meta data for each output/image
+        dets_dict (dict): dictionary of existing detections
+        class_names (list): list to map detection indexes to class names
+
+    Returns:
+        dict: mutated dets_dict that contains new detections
+    """
     # post process the outputs:
     for output, data in zip(outputs, meta_data):
         dets = postprocess(output, data, create_visualization=False)
@@ -79,6 +101,14 @@ def process_outputs(outputs, meta_data, dets_dict, class_names):
 
 
 def build_gt_file(pkl_filename, image_folder, annotations_folder, image_set_file=None):
+    """Construct collated ground truth file from evaluation set.
+
+    Args:
+        pkl_filename (str): path to write ground truth pickle (pkl) file
+        image_folder (str): path to ground truth images. Used to get image file names if image_set_file is None
+        annotations_folder (str): path to root folder for ground truth annotations
+        image_set_file (str, optional): path to image set text file. If provided, is used in place of file names in image folder. Defaults to None.
+    """
     if image_set_file is not None:
         # use the image set file for image file names instead
         image_files = parse_image_set(image_set_file)
@@ -105,6 +135,7 @@ def evaluate(
 
     Args:
         rknn_model (model): provides inference
+        input_size (list/tuple): image input size in H x W.
         gt_filename (str, optional): ground truth pickle file; will be created at location if does not exist. Defaults to "./test_data/gt_files/gt.pkl".
         images_path (str, optional): path to image folder. Defaults to "./test_data/Images".
         annotations_path (str, optional): path to annotations folder. Defaults to "./test_data/Annotations".
