@@ -4,8 +4,19 @@ Kit for evaluating rknn models against their onnx models.
 
 ## Usage
 
+1. (Optional) Use [onnx_quantization.py](quantization/onnx_quantization.py) to quantize the onnx model.
 1. Use [rknn_exporter.py](utils/rknn_exporter.py) to convert the onnx model into an rknn model.
 1. Use [rknn_demo.py](rknn_demo.py) to perform inference and visualization on images included in ./test_data (e.g. `python rknn_demo.py model_name.rknn --use_sim True`)
+
+### ONNX Quantization
+
+Quantization via ONNX is currently supported for YOLOX models and is for now the only method to obtain viable int8/uint8 models.
+Example usage:
+
+```bash
+python utils/onnx_quantization.py -i rknn_exports/example/yolox_tiny_v3.onnx -o rknn_exports/yolox_tiny_v3_uint8.onnx --cal test_data/Images # only -i is a required flag.
+
+```
 
 ### RKNN Model API
 
@@ -38,12 +49,13 @@ An overview of the project file structure. Only essential files are shown:
 ┣📂utils
 ┃┣ 📜eval.py
 ┃┣ 📜result_io.py
-┃┗ 📜rknn_exporter.py
+┃┣ 📜rknn_exporter.py
+┃┗ 📜onnx_quantization.py
 ┣📂setup
 ┃┗ 📜rknn_setup.sh
-┣ 📂yolox_processing
-┃ ┣ 📜processing.py
-┃ ┗ 📜visualization.py
+┣📂yolox_processing
+┃┣ 📜processing.py
+┃┗ 📜visualization.py (not yet addded)
 ┣📂test_data
 ┃┣ 📂Annotations
 ┃┣ 📂Images
@@ -52,7 +64,7 @@ An overview of the project file structure. Only essential files are shown:
 ┃┣ 📂example
 ┃┃ ┣ 📜yolox_tiny_v3.onnx
 ┃┃ ┗ 📜yolox_tiny_v3.rknn
- ┣ 📂logs
+┃┣ 📂logs
 ┣ 📜rknn_demo.py
 ┗ 📜rknn_eval.py
 ```
@@ -64,22 +76,26 @@ Overall, primary scripts are kept at the root of the project, while all other au
 - Fixed inference issues with RKNN model.
 - RKNN export script added.
 - Now supports environments with and without onnxruntime.
+- Added onnx quantization.
+- Added simple rknn model evaluation.
 
 ## Known Issues
 
 - The current RKNN model cannot run on Jupyter Notebook when using rknn-toolkit 1.7
+- When running the rknn on the chip, the process does not terminate despite `rknn.release()` being called. Process needs to be killed instead.
 
 ## Requirements
 
 - **RKNN Toolkit 1.7 is currently being used for export and will be further used for quantization via onnx.**
-- RKNN Toolkit environment setup for 1.6: [bash script to install rknn-toolkit 1.6.1](/setup/rknn_setup.sh)
+- RKNN Toolkit environment setup for 1.7: [bash script to install rknn-toolkit 1.7.1](/setup/rknn_setup.sh)
 - onnxruntime (currently using cpu version): `pip install onnxruntime` or `pip install onnxruntime-gpu`
-- Potential conflict between onnxruntime 1.8.1 and rknn-toolkit 1.6.1: rknn-toolkit requires numpy-1.16 but onnxruntime requires numpy-1.19; currently using numpy-1.19, which might cause problems with rknn-toolkit. Further verification  needed.
+- Potential conflict between onnxruntime 1.5.2 and rknn-toolkit 1.7.1: rknn-toolkit requires numpy-1.16 but onnxruntime requires numpy-1.19; currently using numpy-1.19, which might cause problems with rknn-toolkit. No issues thus far.
 
 ## Future work
 
 - [X] Experiment with numpy versions to find potential conflicts
-- [ ] Support onnx quantization
-- [ ] Investigate environment setup to allow simultaneous testing of onnx and rknn models.
+- [X] Support onnx quantization
+- [X] Investigate environment setup to allow simultaneous testing of onnx and rknn models.
 - [ ] Include CenterNet processing
-- [ ] Evaluation metrics
+- [ ] Include YOLOv5 processing
+- [X] Evaluation metrics

@@ -111,6 +111,3 @@ if __name__ == "__main__":
     )"""
 
     gt_dict = load_gt_file("test_data/gt_files/gt.pkl", imgfiles)
-    # print(gt_dict.keys())
-    # print(gt_dict["head"].keys())
-    # print(gt_dict)

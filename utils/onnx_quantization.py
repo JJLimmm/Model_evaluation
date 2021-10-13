@@ -96,7 +96,7 @@ if __name__ == "__main__":
         "-o",
         "--output",
         type=str,
-        default="output.onnx",
+        default="rknn_exports/output.onnx",
         help="Path to the output quantized onnx file",
     )
     parser.add_argument(
