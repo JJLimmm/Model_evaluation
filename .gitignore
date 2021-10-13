@@ -161,7 +161,8 @@ test_data/Images/*
 test_data/ImageSets/*
 test_results/*
 *.jpg
-
+rknn_exports/*.onnx
+rknn_exports/*.rknn
 
 # developer tools:
 cli_commands.txt
