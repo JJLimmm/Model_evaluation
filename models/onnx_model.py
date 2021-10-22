@@ -8,5 +8,10 @@ class ONNXModel:
 
     def forward(self, image):
         # image need to be expanded into batch
-        output = self.model.run(None, {self._input_name: image[None, :, :, :]})
+        if len(image.shape) == 3:  # expand dim to 4
+            image = image[None, :, :, :]
+        output = self.model.run(None, {self._input_name: image})
         return output
+
+    def close(self):
+        pass  # Do nothing.

@@ -27,6 +27,8 @@ def make_parser():
         default=[512, 512],
         help="Input resolution. If only 1 argument is provided, it is broadcast to 2 dimensions",
     )
+    parser.add_argument("--dev", type=str, default="TM018083200400463")
+    parser.add_argument("--model_type", type=str, default="rknn")
 
     return parser
 
@@ -34,6 +36,7 @@ def make_parser():
 def preprocess_image_folder(path, resize_shape=(512, 512), dtype=np.float16):
     images = []
     meta_data = []
+
     for image_file in Path(path).iterdir():
         # ignore non-image files:
         if not str(image_file).endswith(IMAGE_EXT):
@@ -44,7 +47,8 @@ def preprocess_image_folder(path, resize_shape=(512, 512), dtype=np.float16):
         raw_image = image.copy()
         image, ratio = preprocess(image, resize_shape)
         image = np.expand_dims(image, axis=0)  # further rknn processing
-        image = np.array(image, dtype=dtype)
+        # image = np.array(image, dtype=dtype)
+        # TODO allow change in dtype for onnx models.
 
         images.append(image)
         meta_data.append(
@@ -64,26 +68,42 @@ def vis_batch(outputs, meta_data, output_folder="./test_results"):
         cv2.imwrite(str(os.path.join(output_folder, f"vis{index}.jpg")), vis_image)
 
 
-def demo(rknn_model, images_path="./test_data", resize_shape=(512, 512)):
+def demo(model, images_path="./test_data", resize_shape=(512, 512), dtype=np.float16):
     assert len(resize_shape) == 1 or len(resize_shape) == 2
     if len(resize_shape) == 1:
         resize_shape = (resize_shape[0], resize_shape[0])
-    images, meta_data = preprocess_image_folder(images_path, resize_shape=resize_shape)
+    images, meta_data = preprocess_image_folder(
+        images_path, resize_shape=resize_shape, dtype=dtype
+    )
     outputs = []
     for image in images:
         start_time = time.time()
-        output = rknn_model.forward(image)
+        output = model.forward(image)
         print(f"Infer time: {round(time.time() - start_time, 4)}s")
         outputs.append(output)
-    rknn_model.close()
+    model.close()
 
     vis_batch(outputs, meta_data)
 
 
 if __name__ == "__main__":
+    try:
+        from models import ONNXModel
+    except ImportError:
+        print(
+            "ONNXModel not available in this environment. Need to install onnxruntime."
+        )
+
     args = make_parser().parse_args()
     # model = RKNNModel("./rknn_exports/yolox_tiny_qt.rknn", use_sim=True)
-    model = RKNNModel(
-        os.path.join("./rknn_exports", args.model_path), use_sim=args.use_sim
-    )
-    demo(model, args.in_res)
+    if args.model_type == "onnx":
+        model = ONNXModel(os.path.join("./rknn_exports", args.model_path))
+        dtype = np.float32
+    else:
+        model = RKNNModel(
+            os.path.join("./rknn_exports", args.model_path),
+            use_sim=args.use_sim,
+            device_id=args.dev,
+        )
+        dtype = np.float16
+    demo(model, resize_shape=args.in_res, dtype=dtype)
