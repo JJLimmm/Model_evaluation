@@ -27,11 +27,18 @@ def make_parser():
     parser.add_argument("--model_type", type=str, default="rknn")
     parser.add_argument("--use_sim", type=bool, default=False)
     parser.add_argument("--dev", type=str, default="TM018083200400463")
+    parser.add_argument(
+        "--legacy",
+        action="store_true",
+        help="Use legacy preprocessing for yolox models",
+    )
 
     return parser
 
 
-def preprocess_image_batch(image_file_batch, resize_shape=(512, 512), dtype=np.float16):
+def preprocess_image_batch(
+    image_file_batch, resize_shape=(512, 512), dtype=np.float32, legacy=False
+):
     """Prepare a batch of images for inference
 
     Args:
@@ -50,7 +57,7 @@ def preprocess_image_batch(image_file_batch, resize_shape=(512, 512), dtype=np.f
         image = cv2.imread(str(image_file))
 
         raw_image = image.copy()
-        image, ratio = preprocess(image, resize_shape)
+        image, ratio = preprocess(image, resize_shape, legacy=legacy)
         image = np.expand_dims(image, axis=0)  # further rknn processing
         image = np.array(image, dtype=dtype)
 
@@ -130,6 +137,7 @@ def evaluate(
     batch_size=32,
     result_path="./test_results",
     class_names=["A", "B"],
+    legacy=False,
 ):
     """Evaluate a model on VOC mAP
 
@@ -174,7 +182,7 @@ def evaluate(
 
         # batch process:
         images, meta_data = preprocess_image_batch(
-            image_file_batch, resize_shape=input_size
+            image_file_batch, resize_shape=input_size, legacy=legacy
         )
         image_file_batch = []
         outputs = []
@@ -218,6 +226,8 @@ if __name__ == "__main__":
             device_id=args.dev,
         )
 
-    evaluate(model, class_names=["helmet", "head"], input_size=(512, 512))
+    evaluate(
+        model, class_names=["helmet", "head"], input_size=(512, 512), legacy=args.legacy
+    )
 
     model.close()
