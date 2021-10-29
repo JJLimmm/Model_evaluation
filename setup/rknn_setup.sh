@@ -31,7 +31,7 @@ fi
 echo "Registering environment via nb_conda"
 conda install -y nb_conda
 
-pip install tensorflow==1.11.0
+pip install tensorflow==1.14.0
 pip install torch==1.5.1 torchvision
 pip install mxnet==1.5.0
 
