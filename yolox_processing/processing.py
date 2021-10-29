@@ -8,6 +8,7 @@ def preprocess(
     mean=(0.485, 0.456, 0.406),
     std=(0.229, 0.224, 0.225),
     swap=(2, 0, 1),
+    legacy=False,
 ):
     """Convert image read by cv2 into a resized, normalized, floating point representation.
     Resizing is done in a manner that preserves aspect ratio via padding.
@@ -36,12 +37,13 @@ def preprocess(
     ).astype(np.float32)
     padded_img[: int(img.shape[0] * r), : int(img.shape[1] * r)] = resized_img
 
-    padded_img = padded_img[:, :, ::-1]
-    padded_img /= 255.0
-    if mean is not None:
-        padded_img -= mean
-    if std is not None:
-        padded_img /= std
+    if legacy:
+        padded_img = padded_img[:, :, ::-1]
+        padded_img /= 255.0
+        if mean is not None:
+            padded_img -= mean
+        if std is not None:
+            padded_img /= std
     padded_img = padded_img.transpose(swap)
     padded_img = np.ascontiguousarray(padded_img, dtype=np.float32)
     return padded_img, r

@@ -19,21 +19,29 @@ IMAGE_EXT = (".jpg", ".jpeg", ".webp", ".bmp", ".png")  # must be tuple
 def make_parser():
     parser = argparse.ArgumentParser()
     parser.add_argument("model_path")
+    parser.add_argument("--img_path", default="./test_data", type=str)
     parser.add_argument("--use_sim", type=bool, default=False)
     parser.add_argument(
-        "--in_res",
+        "--res",
         nargs="+",
         type=int,
         default=[512, 512],
         help="Input resolution. If only 1 argument is provided, it is broadcast to 2 dimensions",
     )
     parser.add_argument("--dev", type=str, default="TM018083200400463")
-    parser.add_argument("--model_type", type=str, default="rknn")
+    parser.add_argument("--onnx", action="store_true", help="run demo with onnx model")
+    parser.add_argument(
+        "--legacy",
+        action="store_true",
+        help="Use legacy preprocessing for yolox models",
+    )
 
     return parser
 
 
-def preprocess_image_folder(path, resize_shape=(512, 512), dtype=np.float16):
+def preprocess_image_folder(
+    path, resize_shape=(512, 512), dtype=np.float16, legacy=False
+):
     images = []
     meta_data = []
 
@@ -45,9 +53,9 @@ def preprocess_image_folder(path, resize_shape=(512, 512), dtype=np.float16):
         image = cv2.imread(str(image_file))
 
         raw_image = image.copy()
-        image, ratio = preprocess(image, resize_shape)
+        image, ratio = preprocess(image, resize_shape, legacy=legacy)
         image = np.expand_dims(image, axis=0)  # further rknn processing
-        # image = np.array(image, dtype=dtype)
+        image = np.array(image, dtype=dtype)
         # TODO allow change in dtype for onnx models.
 
         images.append(image)
@@ -64,16 +72,22 @@ def vis_batch(outputs, meta_data, output_folder="./test_results"):
     Path(output_folder).mkdir(exist_ok=True, parents=True)
 
     for index, (output, data) in enumerate(zip(outputs, meta_data)):
-        vis_image = postprocess(output, data)
+        vis_image = postprocess(output, data, class_names=str(list(range(80))))
         cv2.imwrite(str(os.path.join(output_folder, f"vis{index}.jpg")), vis_image)
 
 
-def demo(model, images_path="./test_data", resize_shape=(512, 512), dtype=np.float16):
+def demo(
+    model,
+    images_path="./test_data",
+    resize_shape=(512, 512),
+    dtype=np.float16,
+    legacy=False,
+):
     assert len(resize_shape) == 1 or len(resize_shape) == 2
     if len(resize_shape) == 1:
         resize_shape = (resize_shape[0], resize_shape[0])
     images, meta_data = preprocess_image_folder(
-        images_path, resize_shape=resize_shape, dtype=dtype
+        images_path, resize_shape=resize_shape, dtype=dtype, legacy=legacy
     )
     outputs = []
     for image in images:
@@ -96,7 +110,7 @@ if __name__ == "__main__":
 
     args = make_parser().parse_args()
     # model = RKNNModel("./rknn_exports/yolox_tiny_qt.rknn", use_sim=True)
-    if args.model_type == "onnx":
+    if args.onnx:
         model = ONNXModel(os.path.join("./rknn_exports", args.model_path))
         dtype = np.float32
     else:
@@ -106,4 +120,10 @@ if __name__ == "__main__":
             device_id=args.dev,
         )
         dtype = np.float16
-    demo(model, resize_shape=args.in_res, dtype=dtype)
+    demo(
+        model,
+        images_path=args.img_path,
+        resize_shape=args.res,
+        dtype=dtype,
+        legacy=args.legacy,
+    )
