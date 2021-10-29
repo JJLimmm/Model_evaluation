@@ -164,6 +164,9 @@ test_results/*
 rknn_exports/*.onnx
 rknn_exports/*.rknn
 
+# onnx temp files
+augmented_model.onnx
+
 # developer tools:
 cli_commands.txt
 test.py
