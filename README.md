@@ -6,7 +6,13 @@ Kit for evaluating rknn models against their onnx models.
 
 1. (Optional) Use [onnx_quantization.py](quantization/onnx_quantization.py) to quantize the onnx model.
 1. Use [rknn_exporter.py](utils/rknn_exporter.py) to convert the onnx model into an rknn model.
-1. Use [rknn_demo.py](rknn_demo.py) to perform inference and visualization on images included in ./test_data (e.g. `python rknn_demo.py model_name.rknn --use_sim True`)
+1. YOLOX: Use [rknn_demo_x.py](rknn_demo_x.py) to perform inference and visualization
+e.g. `python rknn_demo_x.py model_path.rknn --use_sim True`
+1. YOLOv5: Use [rknn_demo_v5.py](rknn_demo_v5.py) to perform inference and visualization. Note that ONNXRuntime works only for non quantized YOLOv5 models.
+e.g. 
+`python rknn_demo_v5.py model_path.onnx --use_sim True --in_res 640 --model_type onnx --test_dir ./test_data/Images --test_save ./test_results`
+`python rknn_demo_v5.py model_path.rknn --use_sim True --in_res 640 --model_type rknn --test_dir ./test_data/Images --test_save ./test_results`
+`python rknn_demo_v5.py -h` for details
 
 ### ONNX Quantization
 
@@ -72,7 +78,7 @@ An overview of the project file structure. Only essential files are shown:
 Overall, primary scripts are kept at the root of the project, while all other auxillary files are kept in processing, models, or utils respectively.
 
 ## Main Changelog
-
+- Added YOLOv5 ONNXRuntime and RKNN demo
 - Fixed inference issues with RKNN model.
 - RKNN export script added.
 - Now supports environments with and without onnxruntime.
@@ -97,5 +103,5 @@ Overall, primary scripts are kept at the root of the project, while all other au
 - [X] Support onnx quantization
 - [X] Investigate environment setup to allow simultaneous testing of onnx and rknn models.
 - [ ] Include CenterNet processing
-- [ ] Include YOLOv5 processing
+- [X] Include YOLOv5 processing
 - [X] Evaluation metrics

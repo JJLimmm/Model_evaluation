@@ -29,14 +29,16 @@ class RKNNModel:
                 self.model.init_runtime(target=device_type)
 
     def forward(self, image):  # TODO input types. docstrings.
+        # TODO use image type as reference for model type:
 
         result = self.model.inference(
             inputs=[image],
             data_format="nchw",
-            data_type=str(image.dtype),
+            data_type="float16",
             inputs_pass_through=[1],
         )
         return np.array(result)
 
     def close(self):
         self.model.release()
+
