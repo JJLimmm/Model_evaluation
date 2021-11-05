@@ -34,7 +34,7 @@ class RKNNModel:
         result = self.model.inference(
             inputs=[image],
             data_format="nchw",
-            data_type="float16",
+            data_type=str(image.dtype),
             inputs_pass_through=[1],
         )
         return np.array(result)
