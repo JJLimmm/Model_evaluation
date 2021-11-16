@@ -114,7 +114,7 @@ def onnx_to_rknn(
 
 
 if __name__ == "__main__":
-    model_path = "./rknn_exports/tiny_v6_uint8.onnx"
+    model_path = "./rknn_exports/onnx/final0.onnx"
 
     try:
         import onnxruntime
@@ -127,7 +127,7 @@ if __name__ == "__main__":
         print(
             f"onnxruntime module not available. Unable to infer input shape; falling back on default input shape"
         )
-        input_shape = [3, 640, 640]
+        input_shape = [3, 512, 512]
 
     print(input_shape)
 
@@ -144,7 +144,7 @@ if __name__ == "__main__":
     onnx_to_rknn(
         model_path,
         input_shape,
-        rknn_model_name="tinyv3",
+        rknn_model_name="final0QAT",
         log_onnx_validation=True,
         perform_quant=False,
         quant_info=quant_info,

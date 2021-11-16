@@ -109,7 +109,7 @@ if __name__ == "__main__":
         )
 
     args = make_parser().parse_args()
-    # model = RKNNModel("./rknn_exports/yolox_tiny_qt.rknn", use_sim=True)
+
     if args.onnx:
         model = ONNXModel(os.path.join("./rknn_exports", args.model_path))
         dtype = np.float32

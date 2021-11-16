@@ -1,5 +1,5 @@
 from numpy.core.fromnumeric import resize
-from models import v5RKNNModel, v5ONNXModel
+from models import RKNNModel, ONNXModel
 from yolov5_processing import *
 
 import cv2
@@ -16,6 +16,7 @@ device_type="rk1808",
 def make_parser():
     parser = argparse.ArgumentParser()
     parser.add_argument("model_path")
+    parser.add_argument("model_type",type = str, default="v5",help="v5 or x")
     parser.add_argument("--use_sim", type=bool, default=False)
     parser.add_argument(
         "--in_res",
@@ -27,7 +28,6 @@ def make_parser():
     parser.add_argument("--test_dir",type=str,default="./test_data/Images")
     parser.add_argument("--test_save",type=str,default="./test_results")
     parser.add_argument("--dev", type=str, default="TM018083200400463")
-    parser.add_argument("--model_type", type=str, default="rknn", help="rknn(Default), onnx")
 
     return parser
 
@@ -118,27 +118,15 @@ if __name__ == '__main__':
     
     args = make_parser().parse_args()
     # Create RKNN object
-    
+    engine = args.model_path.split('.')[-1]
     # pre-process config
-    if args.model_type == "rknn":
-        model = v5RKNNModel(args.model_path,args.use_sim,device_id = args.dev)
+    if engine == "rknn":
+        model = RKNNModel(args.model_path,args.model_type,args.use_sim,device_id = args.dev)
 
-    elif args.model_type == "onnx":
+    elif engine == "onnx":
         if not os.path.exists(args.model_path):
             print('Model does not exist')
             exit(-1)
-        model = v5ONNXModel(args.model_path)
+        model = ONNXModel(args.model_path,args.model_type)
         
-    demo(model,args.model_type,args.test_dir,args.test_save,args.in_res)
-
-        
-
-        
-        
-    
-
-
-
-
-
-
+    demo(model,engine,args.test_dir,args.test_save,args.in_res)
