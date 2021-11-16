@@ -6,13 +6,12 @@ Kit for evaluating rknn models against their onnx models.
 
 1. (Optional) Use [onnx_quantization.py](quantization/onnx_quantization.py) to quantize the onnx model.
 1. Use [rknn_exporter.py](utils/rknn_exporter.py) to convert the onnx model into an rknn model.
-1. YOLOX: Use [rknn_demo_x.py](rknn_demo_x.py) to perform inference and visualization  
-e.g. `python rknn_demo_x.py model_path.rknn --use_sim True`
-1. YOLOv5: Use [rknn_demo_v5.py](rknn_demo_v5.py) to perform inference and visualization. Note that ONNXRuntime works only for non quantized YOLOv5 models.
-e.g. 
-`python rknn_demo_v5.py model_path.onnx --use_sim True --in_res 640 --model_type onnx --test_dir ./test_data/Images --test_save ./test_results`  
-`python rknn_demo_v5.py model_path.rknn --use_sim True --in_res 640 --model_type rknn --test_dir ./test_data/Images --test_save ./test_results`  
-`python rknn_demo_v5.py -h` for details  
+1. Use [rknn_demo.py](rknn_demo.py) to perform inference and visualization. Note that ONNXRuntime works only for non quantized YOLOv5 models.  
+e.g. `python rknn_demo.py model_path.rknn --use_sim True`  
+`python rknn_demo.py model_path.onnx --model_type <v5 or x> --use_sim True --res 640 --test_dir ./test_data/Images --test_save ./test_results`  
+`python rknn_demo.py model_path.rknn --model_type <v5 or x> --use_sim True --res 640  --test_dir ./test_data/Images --test_save ./test_results`  
+`python rknn_demo.py -h` for details  
+
 
 ### ONNX Quantization
 
