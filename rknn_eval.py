@@ -28,9 +28,23 @@ def make_parser():
     parser.add_argument("--use_sim", type=bool, default=False)
     parser.add_argument("--dev", type=str, default="TM018083200400463")
     parser.add_argument(
+        "--res",
+        nargs="+",
+        type=int,
+        default=[512, 512],
+        help="Input resolution. If only 1 argument is provided, it is broadcast to 2 dimensions",
+    )
+    parser.add_argument(
         "--legacy",
         action="store_true",
         help="Use legacy preprocessing for yolox models",
+    )
+    parser.add_argument(
+        "--names",
+        nargs="+",
+        type=str,
+        default=["head", "helmet"],
+        help="Class names (MUST be in indexed order)",
     )
 
     return parser
@@ -89,6 +103,8 @@ def process_outputs(outputs, meta_data, dets_dict, class_names):
     """
     # post process the outputs:
     for output, data in zip(outputs, meta_data):
+
+        # print(data)
         dets = postprocess(output, data, create_visualization=False)
         image_file = data["image_file"]
 
@@ -129,7 +145,7 @@ def build_gt_file(pkl_filename, image_folder, annotations_folder, image_set_file
 
 def evaluate(
     model,
-    input_size=(512, 512),
+    resize_shape=(512, 512),
     gt_filename="./test_data/gt_files/gt.pkl",
     images_path="./test_data/Images",
     annotations_path="./test_data/Annotations",
@@ -152,6 +168,9 @@ def evaluate(
         result_path (str, optional): Currently redundant. Defaults to "./test_results".
         class_names (list, optional): class names used in groundtruth. Must match else gt won't load. Defaults to ["A", "B"].
     """
+    assert len(resize_shape) == 1 or len(resize_shape) == 2
+    if len(resize_shape) == 1:
+        resize_shape = (resize_shape[0], resize_shape[0])
     # check if gt file already exists:
     if not os.path.exists(gt_filename):
         # need to build new gt file
@@ -166,7 +185,7 @@ def evaluate(
     # non-batch variables:
     inference_times = []
     detections = {x: {} for x in class_names}
-    count = 0
+
     # batch variables:
     image_file_batch = []
 
@@ -182,7 +201,7 @@ def evaluate(
 
         # batch process:
         images, meta_data = preprocess_image_batch(
-            image_file_batch, resize_shape=input_size, legacy=legacy
+            image_file_batch, resize_shape=resize_shape, legacy=legacy
         )
         image_file_batch = []
         outputs = []
@@ -227,7 +246,10 @@ if __name__ == "__main__":
         )
 
     evaluate(
-        model, class_names=["helmet", "head"], input_size=(512, 512), legacy=args.legacy
+        model,
+        class_names=args.names,
+        resize_shape=args.res,
+        legacy=False,  # args.legacy,
     )
 
     model.close()

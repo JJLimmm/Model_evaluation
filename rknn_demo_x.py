@@ -72,7 +72,7 @@ def vis_batch(outputs, meta_data, output_folder="./test_results"):
     Path(output_folder).mkdir(exist_ok=True, parents=True)
 
     for index, (output, data) in enumerate(zip(outputs, meta_data)):
-        vis_image = postprocess(output, data, class_names=str(list(range(80))))
+        vis_image = postprocess(output, data, class_names=[str(x) for x in range(80)])
         cv2.imwrite(str(os.path.join(output_folder, f"vis{index}.jpg")), vis_image)
 
 
