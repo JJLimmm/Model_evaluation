@@ -99,10 +99,6 @@ def demo_x(
     vis_batch(outputs, meta_data)
 
 
-
-
-
-
 ###################### YOLOv5 ##########################
 def rknn_post_process(outputs,img_size):
     # full post process 
