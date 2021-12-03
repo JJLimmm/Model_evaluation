@@ -7,7 +7,7 @@ except ImportError:
     print("ONNXModel not available in this environment")
 
 from yolox_processing import postprocess, preprocess, decompose_detections
-from utils import compute_mAP, create_gt_file
+from utils import compute_mAP, create_gt_file, plot_confusion_matrix
 
 import cv2
 import numpy as np
@@ -25,6 +25,7 @@ def make_parser():
     parser = argparse.ArgumentParser()
     parser.add_argument("model_path")
     parser.add_argument("--model_type", type=str, default="rknn")
+    parser.add_argument("--onnx", action="store_true", help="run demo with onnx model")
     parser.add_argument("--use_sim", type=bool, default=False)
     parser.add_argument("--dev", type=str, default="TM018083200400463")
     parser.add_argument(
@@ -41,10 +42,21 @@ def make_parser():
     )
     parser.add_argument(
         "--names",
+        required=True,
         nargs="+",
         type=str,
-        default=["head", "helmet"],
         help="Class names (MUST be in indexed order)",
+    )
+    parser.add_argument(
+        "--absconfusion",
+        action="store_false",
+        help="Do not normalize confusion matrix; use absolute values.",
+    )
+    parser.add_argument(
+        "--dataset",
+        type=str,
+        default=None,
+        help="name of dataset folder in ./test_data",
     )
 
     return parser
@@ -132,13 +144,15 @@ def build_gt_file(pkl_filename, image_folder, annotations_folder, image_set_file
         annotations_folder (str): path to root folder for ground truth annotations
         image_set_file (str, optional): path to image set text file. If provided, is used in place of file names in image folder. Defaults to None.
     """
-    if image_set_file is not None:
-        # use the image set file for image file names instead
+
+    try:
+        # use the image set file for image file names if possible
         image_files = parse_image_set(image_set_file)
-    else:
+
+    except:
         image_files = []
         for image_file in Path(image_folder).iterdir():
-            image_files.append(image_file.parts[-1])
+            image_files.append(image_file.with_suffix("").parts[-1])
 
     create_gt_file(pkl_filename, image_files, annotations_folder)
 
@@ -150,10 +164,11 @@ def evaluate(
     images_path="./test_data/Images",
     annotations_path="./test_data/Annotations",
     image_set_file="./test_data/ImageSets/main.txt",
-    batch_size=32,
+    batch_size=16,
     result_path="./test_results",
     class_names=["A", "B"],
     legacy=False,
+    normalize_confusion_matrix=True,
 ):
     """Evaluate a model on VOC mAP
 
@@ -225,6 +240,11 @@ def evaluate(
     print(f"Class aps: {class_aps}")
     print(f"Final mAP: {mAP}")
 
+    confusion_matrix = plot_confusion_matrix(
+        detections, gt_filename, class_names, normalize=normalize_confusion_matrix
+    )
+    confusion_matrix.savefig(os.path.join(result_path, "confusion_matrix.png"), dpi=250)
+
 
 if __name__ == "__main__":
     try:
@@ -236,8 +256,8 @@ if __name__ == "__main__":
 
     args = make_parser().parse_args()
 
-    if args.model_type == "onnx":
-        model = ONNXModel(args.model_path)
+    if args.model_type == "onnx" or args.onnx:
+        model = ONNXModel(os.path.join("./rknn_exports", args.model_path))
     else:
         model = RKNNModel(
             os.path.join("./rknn_exports", args.model_path),
@@ -245,11 +265,25 @@ if __name__ == "__main__":
             device_id=args.dev,
         )
 
-    evaluate(
-        model,
-        class_names=args.names,
-        resize_shape=args.res,
-        legacy=False,  # args.legacy,
-    )
+    if args.dataset is None:
+        evaluate(
+            model,
+            class_names=args.names,
+            resize_shape=args.res,
+            legacy=False,  # args.legacy,
+            normalize_confusion_matrix=args.absconfusion,
+        )
+    else:
+        evaluate(
+            model,
+            class_names=args.names,
+            resize_shape=args.res,
+            legacy=False,  # args.legacy,
+            gt_filename=f"./test_data/gt_files/{args.dataset}.pkl",
+            images_path=f"./test_data/{args.dataset}/Images",
+            annotations_path=f"./test_data/{args.dataset}/Annotations",
+            image_set_file=f"./test_data/{args.dataset}/ImageSets/main.txt",
+            normalize_confusion_matrix=args.absconfusion,
+        )
 
     model.close()

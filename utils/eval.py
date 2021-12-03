@@ -75,7 +75,7 @@ def compute_class_AP(detections, targets, iou_threshold):
 
     Args:
         detections (dictionary): dictionary of the form {img_file: {confidence, bbox}}
-        targets (dict): dict of the form {img_file: {difficult, det, bbox}}
+        targets (dict): dict of the form {img_file: [{difficult, bbox, ...},..]}
         iou_threshold (float): threshold for IoU
     """
     # decompose detections -> img_file, confidence, bbox:
@@ -147,7 +147,7 @@ def compute_mAP(
     """Compute mAP for all classes
 
     Args:
-        detections (dict): dictionary of the form {class: {img_files: {bbox, conf}}}
+        detections (dict): dictionary of the form {class: {img_files: {confidence, bbox}}}
         gt_filepath (str): ground truth annotation file path.
         iou_threshold (float, optional): IoU threshold used to determine TP detection. Defaults to 0.5.
     """
@@ -170,3 +170,163 @@ def compute_mAP(
         class_aps.append(ap)
 
     return np.mean(np.array(class_aps)), class_aps
+
+
+def plot_confusion_matrix(
+    detections,
+    gt_filepath,
+    classnames,
+    conf_threshold=0.25,
+    iou_threshold=0.5,
+    normalize=True,
+):
+    num_classes = len(classnames)
+    class_indexes = dict(zip(classnames, range(num_classes)))
+    matrix = np.zeros((num_classes + 1, num_classes + 1))  # include background
+
+    # filter and convert detections to form {img_id: [cls, bbox]}
+    img_detections = {}
+    img_gts = {}
+
+    for classname in classnames:
+        # prep dets
+        class_detections = detections[classname]
+
+        for image_file in class_detections.keys():
+            img_detections.setdefault(image_file, [])
+
+            bboxes = list(
+                map(
+                    lambda x: x[1],
+                    filter(
+                        lambda x: x[0] > conf_threshold,
+                        detections[classname][image_file],
+                    ),
+                )
+            )
+            img_detections[image_file].extend([[bbox, classname] for bbox in bboxes])
+
+    # arrange ground truths in a similar manner
+    ground_truths = load_gt_file(gt_filepath, img_detections.keys(), classnames)
+    for classname in classnames:
+        class_gts = ground_truths[classname]  # class_gt is a dictionary with
+        for image_file in class_gts.keys():
+            img_gts.setdefault(image_file, [])
+            img_gts[image_file].extend(
+                [[bbox, classname] for bbox in class_gts[image_file]["bbox"]]
+            )
+
+    for image_file in img_detections.keys():
+        # compare iou of all the bboxes. Each detection will resolve to a ground truth (or background)
+        # compute IoU matrix: N_det x N_gt matrix of pairwise bbox IoUs
+        gts = img_gts[image_file]
+        dets = img_detections[image_file]
+
+        iou_matrix = [
+            [score_iou(det_bbox, gt_bbox) for gt_bbox, _ in gts] for det_bbox, _ in dets
+        ]
+
+        iou_matrix = np.array(iou_matrix)
+        valid_indexes = np.where(iou_matrix > iou_threshold)
+
+        # get matches based on the ious.
+        matches = []
+        for i in range(valid_indexes[0].shape[0]):
+            det_index, gt_index = valid_indexes[0][i], valid_indexes[1][i]
+            matches.append([gt_index, det_index, iou_matrix[det_index, gt_index]])
+        matches = np.array(matches)
+
+        # print(len(dets))
+        # print(len(gts))
+        # print(iou_matrix.shape)
+        # print(valid_indexes)
+        # print(matches.shape)
+
+        if matches.shape[0] > 0:  # valid match exists
+            # simple match assignment based on iou scores
+
+            ranked_matches = matches[:, 2].argsort()[::-1]  # best match first
+            matches = matches[ranked_matches]
+
+            # np.unique selects the first instance of a unique element encountered;
+            # resolve ground truths to their top detection
+            matches = matches[np.unique(matches[:, 1], return_index=True)[1]]
+
+            # do the same to resolve detections to their top ground truth
+            ranked_matches = matches[:, 2].argsort()[::-1]  # best match first
+            matches = matches[ranked_matches]
+            matches = matches[np.unique(matches[:, 2], return_index=True)[1]]
+
+            # update confusion matrix based on matches
+            gt_indexes, det_indexes, _ = matches.T.astype(
+                np.int16
+            )  # cast to integer for index to be valid subscriptable type
+            det_classes = np.array(dets)[:, 1]
+
+            for index, classname in enumerate(det_classes):
+                if not any(det_indexes == index):  # detection could not be matched; FP
+                    matrix[class_indexes[classname], num_classes] += 1
+
+            # print(det_classes[det_indexes])
+            # print(det_indexes)
+            # det_classes[det_indexes]
+
+        for index, (_, classname) in enumerate(gts):
+            matched_detections = gt_indexes == index
+            if matches.shape[0] > 0 and sum(matched_detections) == 1:
+                matrix[
+                    list(
+                        map(
+                            lambda x: class_indexes[x],
+                            det_classes[det_indexes[matched_detections]],
+                        )
+                    ),
+                    class_indexes[classname],
+                ] += 1
+            else:
+                matrix[
+                    num_classes, class_indexes[classname]
+                ] += 1  # no detection for gt; Background FN
+
+    # use confusion matrix to count number of TP, FP, FN:
+    # cannot use matrix.diagnonal() in older ver of numpy
+    tp = np.diagonal(matrix).copy()
+    # fn = matrix.sum(0) - tp
+    fp = matrix.sum(1) - tp
+
+    # create plot of confusion matrix:
+    try:
+        import seaborn as sn
+        import matplotlib.pyplot as plt
+        import warnings
+
+        array = matrix / (
+            (matrix.sum(0).reshape(1, -1) + 1e-6) if normalize else 1
+        )  # normalize columns
+        array[array < 0.005] = np.nan  # don't annotate (would appear as 0.00)
+
+        fig = plt.figure(figsize=(12, 9), tight_layout=True)
+        sn.set(font_scale=1.0 if num_classes < 50 else 0.8)  # set label size
+        with warnings.catch_warnings():
+            warnings.simplefilter(
+                "ignore"
+            )  # suppress empty matrix RuntimeWarning: All-NaN slice encountered
+            sn.heatmap(
+                array,
+                annot=True,
+                annot_kws={"size": 8},
+                cmap="Blues",
+                fmt=".2f",
+                square=True,
+                xticklabels=classnames + ["background FP"],
+                yticklabels=classnames + ["background FN"],
+            ).set_facecolor((1, 1, 1))
+        fig.axes[0].set_title(
+            f"Confusion matrix: {round(tp.sum())} TP, {round(fp.sum())} FP + FN"
+        )
+        fig.axes[0].set_xlabel("True")
+        fig.axes[0].set_ylabel("Predicted")
+        return fig
+
+    except Exception as e:
+        print(f"Confusion matrix plot failed: {e}")
