@@ -127,7 +127,7 @@ if __name__ == "__main__":
         print(
             f"onnxruntime module not available. Unable to infer input shape; falling back on default input shape"
         )
-        input_shape = [3, 640, 640]
+        input_shape = [3, 512, 512]
 
     print(f"Using {input_shape} as input_shape")
 
