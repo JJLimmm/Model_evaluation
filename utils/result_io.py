@@ -15,7 +15,6 @@ def annotation_parser(filename):
     for obj in tree.findall("object"):
         obj_struct = {}
         obj_struct["name"] = obj.find("name").text
-        obj_struct["pose"] = obj.find("pose").text
         obj_struct["truncated"] = int(obj.find("truncated").text)
         obj_struct["difficult"] = int(obj.find("difficult").text)
         bbox = obj.find("bndbox")
@@ -34,9 +33,9 @@ def create_gt_file(filepath, imagefiles, annotations_path):
     annotation_details = {}
     pbar = tqdm(imagefiles, total=len(imagefiles), desc="Parsing annotations")
     for imagefile in pbar:
-        annotation_path = Path(os.path.join(annotations_path, imagefile)).with_suffix(
-            ".xml"
-        )
+        annotation_path = Path(
+            os.path.join(annotations_path, imagefile) + ".xml"
+        )  # using with_suffix will affect filenames with "."
         pbar.set_description(f"Parsing annotations in {annotation_path}")
         annotation_details[imagefile] = annotation_parser(annotation_path)
 

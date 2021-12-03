@@ -119,17 +119,11 @@ def postprocess(
     image = image_info["raw_img"]
     test_size = image_info["test_size"]
 
-    try:
-        predictions = output_to_predictions(outputs[0], test_size, p6=False)[
-            0
-        ]  # only strip batch dim
-    except:
-        print(
-            f"output_to_predictions: {output_to_predictions(outputs[0], test_size, p6=False)}"
-        )
-        raise Exception(
-            "in postprocess line 119, output_to_prediction could not be unpacked; expected len > 0"
-        )
+
+    predictions = output_to_predictions(outputs[0], test_size, p6=False)[
+        0
+    ]  # only strip batch dim
+
     boxes = predictions[:, :4]
     scores = predictions[:, 4:5] * predictions[:, 5:]
 
