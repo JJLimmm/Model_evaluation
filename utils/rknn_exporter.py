@@ -114,7 +114,7 @@ def onnx_to_rknn(
 
 
 if __name__ == "__main__":
-    model_path = "./rknn_exports/tiny_v6_uint8.onnx"
+    model_path = "./rknn_exports/yoloxs.onnx"
 
     try:
         import onnxruntime
@@ -129,22 +129,22 @@ if __name__ == "__main__":
         )
         input_shape = [3, 640, 640]
 
-    print(input_shape)
+    print(f"Using {input_shape} as input_shape")
 
     quant_info = {
         "mean_values": [123.7, 116.3, 103.5],
         "std_values": [58.4, 57.1, 57.4],
         "batch_size": 8,
         "epochs": 50,
-        "dtype": "dynamic_fixed_point-i16",
-        "algo": "normal",
+        "dtype": "asymmetric_quantized-u8",
+        "algo": "normal",  # mmse might be better but take longer to quantize
         "dataset": "../data/helmet_quantization/Images/helmet_quantization_data.txt",
     }
 
     onnx_to_rknn(
         model_path,
         input_shape,
-        rknn_model_name="tinyv3",
+        rknn_model_name="rknn_model",
         log_onnx_validation=True,
         perform_quant=False,
         quant_info=quant_info,
