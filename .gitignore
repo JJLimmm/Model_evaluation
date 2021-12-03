@@ -159,6 +159,7 @@ test_data/Annotations/*
 test_data/gt_files/*
 test_data/Images/*
 test_data/ImageSets/*
+test_data/*
 test_results/*
 *.jpg
 rknn_exports/*.onnx
