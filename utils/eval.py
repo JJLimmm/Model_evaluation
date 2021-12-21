@@ -272,7 +272,10 @@ def plot_confusion_matrix(
             # det_classes[det_indexes]
 
         for index, (_, classname) in enumerate(gts):
-            matched_detections = gt_indexes == index
+            try:  # TODO restructure this logic
+                matched_detections = gt_indexes == index
+            except:
+                matched_detections = [0]
             if matches.shape[0] > 0 and sum(matched_detections) == 1:
                 matrix[
                     list(
