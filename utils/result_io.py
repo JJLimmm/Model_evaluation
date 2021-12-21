@@ -15,8 +15,11 @@ def annotation_parser(filename):
     for obj in tree.findall("object"):
         obj_struct = {}
         obj_struct["name"] = obj.find("name").text
-        obj_struct["truncated"] = int(obj.find("truncated").text)
-        obj_struct["difficult"] = int(obj.find("difficult").text)
+        # obj_struct["truncated"] = int(obj.find("truncated").text) # TODO make robust instead
+        try:
+            obj_struct["difficult"] = int(obj.find("difficult").text)
+        except:
+            obj_struct["difficult"] = 0
         bbox = obj.find("bndbox")
         obj_struct["bbox"] = [
             int(bbox.find("xmin").text),
