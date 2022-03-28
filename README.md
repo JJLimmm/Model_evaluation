@@ -1,6 +1,7 @@
 # rknn_evaluation
 
-Kit for evaluating rknn models against their onnx models.
+Model Evaluation Tool for evaluating rknn models against their onnx models.
+Able to show evaluation metrics like mAP, AP, Precision, Recall and a Confusion matrix.
 
 ## Usage
 
